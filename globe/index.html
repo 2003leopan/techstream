@@ -2,10 +2,23 @@
 <html lang="en">
 <meta charset="utf-8">
 <style>
-  #map {
+  #map, .multi-map {
     width: 960px;
     margin: 0 auto;
     position: relative;
+  }
+
+  #multi-view-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .multi-map {
+    width: 30%; /* Roughly one-third of the width */
+    /* height: 500px; /* Adjust height for multi-view */
+    margin: 0;
   }
 
   #infoBox {
@@ -20,25 +33,16 @@
     line-height: 1.4;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     max-width: 300px;
+    z-index: 100; /* Ensure it's above maps */
   }
 
   #timeline {
     position: absolute;
-    top: 520px;
+    top: 530px;
     left: 50%;
     transform: translateX(-50%);
   }
-  /* // position: absolute; top: 570px; left: 50%; transform: translateX(-50%); font-family: sans-serif; font-size: 13px; padding: 4px 6px;
-  #dateDropdown {
-    position: absolute;
-    top: 590px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: sans-serif;
-    font-size: 13px;
-    padding: 4px 6px;
-  } */
-  #prefixDropdown {
+  #multiviewButton {
     position: absolute;
     top: 600px;
     left: 50%;
@@ -46,11 +50,36 @@
     font-family: sans-serif;
     font-size: 13px;
     padding: 4px 6px;
+    cursor: pointer;
+  }
+  #dateDropdown {
+    position: absolute;
+    top: 630px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: sans-serif;
+    font-size: 13px;
+    padding: 4px 6px;
+  }
+  #prefixDropdown, #countryDropdown {
+    position: absolute;
+    left: 50%;
+    font-family: sans-serif;
+    font-size: 13px;
+    padding: 4px 6px;
+  }
+  #prefixDropdown {
+    top: 660px;
+    transform: translateX(-110%);
+  }
+  #countryDropdown {
+    top: 660px;
+    transform: translateX(10%);
   }
 
   #autorotateButton, #playPauseButton {
     position: absolute;
-    top: 640px; /* Adjusted from 640px */
+    top: 700px;
     left: 50%;
     transform: translateX(-50%);
     font-family: sans-serif;
@@ -61,7 +90,18 @@
   }
 
   #playPauseButton {
-    top: 680px; /* Adjusted from 670px */
+    top: 740px;
+  }
+
+  #xxx, #yyy {
+    margin: 0 auto;
+    position: relative;
+  }
+  #xxx {
+    top: 200px;
+  }
+  #yyy {
+    top: 220px;
   }
 
   .flightPath {
@@ -92,21 +132,44 @@
   }
 </style>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-<div class="mb-4 text-center">
-  <a href="../index.html" class="btn btn-primary btn-lg">
-    Click To Return to Main Page
-  </a>
+<div id="storyOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); color: white; display: flex; justify-content: center; align-items: center; z-index: 1000; flex-direction: column; text-align: center; font-family: sans-serif; font-size: 24px;">
+  <div id="storyText"></div>
+  <div id="storyCounter" style="font-size: 16px; margin-top: 20px;"></div>
 </div>
 
 <select id="dateDropdown">
-  <option value="flights100k-jan1.csv" selected>Before (Jan 1 2019)</option>
-  <option value="flights100k-apr1.csv">Peak (Apr 1 2019)</option>
-  <option value="flights100k-dec1.csv">After (Dec 1 2022)</option>
+  <option value="jan" selected>Before (Jan 2 2019)</option>
+  <option value="apr">Peak (Apr 2 2020)</option>
+  <option value="dec">After (Dec 2 2022)</option>
 </select>
 
-<div id="map"></div>
-<div id="infoBox">Click a plane or airport to see details</div>
+<button id="multiviewButton">Enter Multiview</button>
+<button id="zoomInButton">Zoom In</button>
+<button id="zoomOutButton">Zoom Out</button>
+<button id="rotateUpButton">Rotate Up</button>
+<button id="rotateDownButton">Rotate Down</button>
+<button id="rotateLeftButton">Rotate Left</button>
+<button id="rotateRightButton">Rotate Right</button>
+
+<button id="jumpToAmerica">America</button>
+<button id="jumpToCanada">Canada</button>
+<button id="jumpToEurope">Europe</button>
+<button id="jumpToAfrica">Africa</button>
+<button id="jumpToAsia">Asia</button>
+<button id="jumpToMiddleEast">Middle East</button>
+<button id="jumpToSouthAmerica">South America</button>
+<button id="jumpToAustralia">Australia</button>
+
+<div id="single-view-container">
+  <div id="map"></div>
+  <div id="infoBox">Click a plane or airport to see details</div>
+</div>
+
+<div id="multi-view-container" style="display: none;">
+  <div id="map1" class="multi-map"></div>
+  <div id="map2" class="multi-map"></div>
+  <div id="map3" class="multi-map"></div>
+</div>
 
 <div id="timeline">
   <svg id="sliderSvg" width="960" height="60"></svg>
@@ -116,97 +179,349 @@
   <option value="">Select airline prefix</option>
 </select>
 
+<select id="countryDropdown">
+  <option value="">Select country</option>
+</select>
 
-<button id="autorotateButton">Toggle Autorotate</button>
+
+<button id="autorotateButton">Turn Autorotate On</button>
 <button id="playPauseButton">Play Timeline</button>
+<div id="globeCoordinatesLabel" style="position: absolute; top: 730px; left: 50%; transform: translateX(-50%); font-family: sans-serif; font-size: 13px; padding: 4px 6px;"></div>
 <div id="xxx"></div>
+<div id="yyy"></div>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
 
 <script>
 (async function () {
-  // Basic dimensions
-  const width = d3.select("#map").node().getBoundingClientRect().width;
-  const height = 500;
-  const sensitivity = 75;
+  // Storytelling setup
+  const storyScreens = [
+    { text: "The year is 2020. A new virus, COVID-19, begins to spread across the globe.", duration: 3000 },
+    { text: "Borders close, flights are grounded, and the world watches as travel grinds to a halt.", duration: 3000 },
+    { text: "This visualization explores the dramatic impact on global air traffic, comparing pre-pandemic, peak, and post-pandemic activity.", duration: 3000 }
+  ];
 
-  // Load data files (assumes they're in same folder)
-  const world = await d3.json("world.json");
-  let flights = []; // Declare flights globally or in a scope accessible by loadFlightsData
-  let startTime = new Date("2019-01-01T00:00:00Z");
+  let currentStoryScreen = 0;
+  let storyInterval;
 
-  async function loadFlightsData(filename) {
-    flights = await d3.csv(filename, d => ({
-      ...d,
-      latitude_1: +d.latitude_1,
-      longitude_1: +d.longitude_1,
-      latitude_2: +d.latitude_2,
-      longitude_2: +d.longitude_2,
-      firstseen: d.firstseen ? new Date(d.firstseen) : null,
-      lastseen: d.lastseen ? new Date(d.lastseen) : null,
-      timestamp: d.timestamp ? (isNaN(+d.timestamp) ? d.timestamp : +d.timestamp) : null
-    }));
-    // After loading new data, re-render the flights
-    //updateFlights(null); // Pass null to updateFlights to show all flights for the new dataset
+  // Global dateInfo (moved from loadAllDatasets for broader access)
+  const dateInfo = {
+    'jan': { day1: 'flights100k-jan1.csv', day2: 'flights-jan-2nd-2019-filtered.csv', startTime: new Date("2019-01-02T00:00:00Z") },
+    'apr': { day1: 'flights100k-apr1.csv', day2: 'flights-apr-2nd-2020-filtered.csv', startTime: new Date("2020-04-02T00:00:00Z") },
+    'dec': { day1: 'flights100k-dec1.csv', day2: 'flights-dec-2nd-2022-filtered.csv', startTime: new Date("2022-12-02T00:00:00Z") }
+  };
 
+  // New story screens for the extended part
+  const extendedStoryScreens = [
+    { text: "Now, let's focus on Canada. Observe how air traffic patterns shift in this region.", duration: 5000 },
+    { text: "The next chart illustrates the daily flight activity for Canadian airlines across the three periods.", duration: 5000, chart: "canadaFlightsLineChart" }, // Mark this screen for the chart
+    { text: "This concludes our brief story. Feel free to explore the data further!", duration: 5000 }
+  ];
+  let currentExtendedStoryScreen = 0;
+  let canadaFlightsDailyData = null; // To store the calculated data
+
+  function beginStory() {
+    d3.select("#storyOverlay").style("display", "flex");
+    displayNextStoryScreen();
   }
-  //flights = loadFlightsData("flights100k-jan1.csv");
 
-    // Load initial data
-  loadFlightsData("flights100k-jan1.csv").then(() => {
-    //updateFlights(null); // Show all flights initially
-  });
+  function displayNextStoryScreen() {
+    if (currentStoryScreen < storyScreens.length) {
+      const screen = storyScreens[currentStoryScreen];
+      d3.select("#storyText").text(screen.text);
+      let countdown = screen.duration / 1000;
+      d3.select("#storyCounter").text(`Continuing in ${countdown} seconds...`);
 
-  // Handle dataset switch
-  d3.select("#dateDropdown").on("change", function() {
-    const selectedFile = this.value;
-    console.log("Loading dataset:", selectedFile);
-    loadFlightsData(selectedFile).then(() => {
-      // Update startTime based on selected dataset
-      console.log("Updating startTime for dataset:", selectedFile);
-    startTime = selectedFile === "flights100k-jan1.csv" ? new Date("2019-01-01T00:00:00Z") :
-                selectedFile === "flights100k-apr1.csv" ? new Date("2020-04-01T00:00:00Z") :
-                selectedFile === "flights100k-dec1.csv" ? new Date("2022-12-01T00:00:00Z") :
-                new Date("2019-01-01T00:00:00Z");
+      storyInterval = setInterval(() => {
+        countdown--;
+        d3.select("#storyCounter").text(`Continuing in ${countdown} seconds...`);
+        if (countdown <= 0) {
+          clearInterval(storyInterval);
+          currentStoryScreen++;
+          displayNextStoryScreen();
+        }
+      }, 1000);
+    } else {
+      // Story finished, keep overlay visible for the button
+      // d3.select("#storyOverlay").style("display", "none"); // Commented out
 
-    // --- Update timeline scale after loading new flights ---
-    // const timeExtent = d3.extent(flights, d => d.timestamp);
-    // xScale.domain(timeExtent);
+      // --- Post-story automation ---
+      // 1. Rotate the globe to Canada
+      rotateGlobeTo([-94.0667, 61.0942, 0]); // Existing Canada coordinates
 
-    // // Reset timeline slider
-    // d3.select("#timelineSlider")
-    //   .attr("min", timeExtent[0])
-    //   .attr("max", timeExtent[1])
-    //   .attr("value", timeExtent[0]);
+      // 2. Select "Canada" in the country dropdown and trigger change event
+      countryDropdown.property("value", "CANADA");
+      countryDropdown.dispatch("change"); // Trigger the change event
 
-    // // Reset play button state
-    // isPlaying = false;
-    // d3.select("#playButton").text("Play");
+      // 3. Start playing the timeline
+      playPauseBtn.dispatch("click"); // Simulate a click on the play/pause button
 
-    // // Redraw timeline axis (optional)
-    // timelineSvg.select(".x-axis")
-    //   .call(d3.axisBottom(xScale).ticks(5));
-    
-    });
-  });
+      // New: Wait 10 seconds and show "Continue Story" button
 
+      d3.select("#storyText").text("Exploring Canadian air traffic...");
+      d3.select("#storyCounter").text("Please wait 10 seconds for the next part of the story.");
 
+      setTimeout(() => {
+        d3.select("#storyCounter").text(""); // Clear countdown
+        const continueButton = d3.select("#storyOverlay").append("button")
+          .attr("id", "continueStoryButton")
+          .style("padding", "10px 20px")
+          .style("font-size", "20px")
+          .style("margin-top", "30px")
+          .text("Continue Story");
+
+        continueButton.on("click", handleContinueStory);
+      }, 10000); // 10 seconds delay
+    }
+  }
+
+  function getCanadianFlightsDailyCounts() {
+    const dailyCounts = {}; // { 'jan': {day1: count, day2: count}, 'apr': {...}, 'dec': {...} }
+
+    for (const key in allDatasets) {
+        const dataset = allDatasets[key];
+        const flights = dataset.flights;
+        
+        const day1Flights = flights.filter(f => {
+            const firstSeenDate = f.firstseen;
+            if (!firstSeenDate) return false;
+            const datasetStartDate = dateInfo[key].startTime;
+            return firstSeenDate.getDate() === datasetStartDate.getDate() &&
+                   firstSeenDate.getMonth() === datasetStartDate.getMonth() &&
+                   firstSeenDate.getFullYear() === datasetStartDate.getFullYear();
+        });
+
+        const day2Flights = flights.filter(f => {
+            const firstSeenDate = f.firstseen;
+            if (!firstSeenDate) return false;
+            const datasetStartDate = dateInfo[key].startTime;
+            const nextDay = new Date(datasetStartDate);
+            nextDay.setDate(datasetStartDate.getDate() + 1);
+            return firstSeenDate.getDate() === nextDay.getDate() &&
+                   firstSeenDate.getMonth() === nextDay.getMonth() &&
+                   nextDay.getFullYear() === datasetStartDate.getFullYear(); // Corrected: use nextDay.getFullYear()
+        });
+
+        const canadianDay1Flights = day1Flights.filter(f => getCountryForFlight(f) === "CANADA").length;
+        const canadianDay2Flights = day2Flights.filter(f => getCountryForFlight(f) === "CANADA").length;
+
+        dailyCounts[key] = {
+            day1: canadianDay1Flights,
+            day2: canadianDay2Flights
+        };
+    }
+    return dailyCounts;
+  }
+
+  function drawCanadaFlightsLineChart(data) {
+    // data will be like: { 'jan': {day1: count, day2: count}, 'apr': {...}, 'dec': {...} }
+    const chartContainer = d3.select("#storyOverlay").append("div")
+        .attr("id", "canadaFlightsChart")
+        .style("width", "80%")
+        .style("height", "300px")
+        .style("margin-top", "20px")
+        .style("background-color", "white")
+        .style("padding", "10px")
+        .style("border-radius", "8px");
+
+    const margin = {top: 20, right: 30, bottom: 30, left: 60},
+          width = parseInt(chartContainer.style("width")) - margin.left - margin.right,
+          height = parseInt(chartContainer.style("height")) - margin.top - margin.bottom;
+
+    const svg = chartContainer.append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const parseDate = d3.timeParse("%Y-%m-%d");
+    const formatDay = d3.timeFormat("%b %d");
+
+    // Prepare data for line chart
+    const chartData = [];
+    for (const key in data) {
+        const info = dateInfo[key]; // Access dateInfo here
+        const day1Date = info.startTime;
+        const day2Date = new Date(info.startTime);
+        day2Date.setDate(day2Date.getDate() + 1);
+
+        chartData.push({
+            date: day1Date,
+            dataset: key,
+            flights: data[key].day1
+        });
+        chartData.push({
+            date: day2Date,
+            dataset: key,
+            flights: data[key].day2
+        });
+    }
+
+    // Group data by dataset for lines
+    const groupedData = d3.group(chartData, d => d.dataset);
+
+    const x = d3.scaleTime()
+        .domain(d3.extent(chartData, d => d.date))
+        .range([0, width]);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(chartData, d => d.flights) * 1.1])
+        .range([height, 0]);
+
+    const color = d3.scaleOrdinal()
+        .domain(Object.keys(data))
+        .range(d3.schemeCategory10);
+
+    // Add X axis
+    svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x).tickFormat(formatDay));
+
+    // Add Y axis
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Add the lines
+    svg.selectAll(".line")
+        .data(groupedData)
+        .join("path")
+        .attr("fill", "none")
+        .attr("stroke", ([key]) => color(key))
+        .attr("stroke-width", 1.5)
+        .attr("d", ([, values]) => d3.line()
+            .x(d => x(d.date))
+            .y(d => y(d.flights))
+            (values)
+        );
+
+    // Add dots
+    svg.selectAll("dot")
+        .data(chartData)
+        .enter().append("circle")
+        .attr("cx", d => x(d.date))
+        .attr("cy", d => y(d.flights))
+        .attr("r", 4)
+        .attr("fill", d => color(d.dataset));
+
+    // Add tooltips for dots
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "1px")
+        .style("border-radius", "5px")
+        .style("padding", "10px")
+        .style("visibility", "hidden");
+
+    svg.selectAll("circle")
+        .on("mouseover", function(event, d) {
+            tooltip.style("visibility", "visible")
+                .html(`Dataset: ${d.dataset}<br>Date: ${formatDay(d.date)}<br>Flights: ${d.flights}`);
+        })
+        .on("mousemove", function(event) {
+            tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
+        })
+        .on("mouseout", function() {
+            tooltip.style("visibility", "hidden");
+        });
+
+    // Add legend
+    const legend = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 10)
+        .attr("text-anchor", "end")
+        .selectAll("g")
+        .data(Object.keys(data).reverse())
+        .enter().append("g")
+        .attr("transform", (d, i) => `translate(0,${i * 20})`);
+
+    legend.append("rect")
+        .attr("x", width - 19)
+        .attr("width", 19)
+        .attr("height", 19)
+        .attr("fill", color);
+
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9.5)
+        .attr("dy", "0.32em")
+        .text(d => d);
+  }
+
+  function handleContinueStory() {
+      d3.select("#continueStoryButton").remove(); // Remove the button
+      d3.select("#storyOverlay").style("display", "flex"); // Ensure overlay is visible
+      d3.select("#storyText").text(""); // Clear previous text
+      d3.select("#storyCounter").text(""); // Clear previous counter
+
+      if (!canadaFlightsDailyData) {
+          canadaFlightsDailyData = getCanadianFlightsDailyCounts();
+      }
+      displayExtendedStoryScreen();
+  }
+
+  function displayExtendedStoryScreen() {
+      if (currentExtendedStoryScreen < extendedStoryScreens.length) {
+          const screen = extendedStoryScreens[currentExtendedStoryScreen];
+          d3.select("#storyText").text(screen.text);
+          d3.select("#canadaFlightsChart").remove(); // Remove previous chart if any
+
+          if (screen.chart === "canadaFlightsLineChart") {
+              drawCanadaFlightsLineChart(canadaFlightsDailyData);
+          }
+
+          let countdown = screen.duration / 1000;
+          d3.select("#storyCounter").text(`Continuing in ${countdown} seconds...`);
+
+          storyInterval = setInterval(() => {
+              countdown--;
+              d3.select("#storyCounter").text(`Continuing in ${countdown} seconds...`);
+              if (countdown <= 0) {
+                  clearInterval(storyInterval);
+                  currentExtendedStoryScreen++;
+                  displayExtendedStoryScreen();
+              }
+          }, 1000);
+      } else {
+          // All extended story screens finished
+          d3.select("#storyOverlay").style("display", "none");
+          d3.select("#canadaFlightsChart").remove(); // Ensure chart is removed
+      }
+  }
+
+  // Call beginStory immediately
+  beginStory();
+
+  // Basic dimensions
+  const width = 960; // Fixed width for main container
+  const height = 500;
+  const sensitivity = 70; // Increased sensitivity for more responsive dragging
+
+  // NEW: Color scale for airlines
+  const totalMinutes = 24 * 60;
+  const stepMinutes = 5;
+
+  const colorScale = d3.scaleOrdinal(d3.schemeCategory10.concat(d3.schemePaired));
+
+  const world = await d3.json("world.json");
   const faaData = await d3.csv("faa.csv");
+  const aircraftData = await d3.csv("aircraft.csv");
+  const airportsData = await d3.csv("airports.csv");
+
   const faaLookup = {};
   faaData.forEach(d => {
     if(d['3Ltr']) faaLookup[d['3Ltr'].toUpperCase()] = d;
   });
 
-  const aircraftData = await d3.csv("aircraft.csv");
   const aircraftLookup = {};
   aircraftData.forEach(d => {
     if(d.registration) aircraftLookup[d.registration.toUpperCase()] = d;
   });
 
-  const airports = await d3.csv("airports.csv");
   const airportLookup = {};
-  airports.forEach(d => {
+  airportsData.forEach(d => {
     [d.ident, d.icao_code, d.iata_code, d.gps_code].forEach(k => {
       if (k) {
         airportLookup[k.toUpperCase()] = d;
@@ -214,9 +529,8 @@
     });
   });
 
-  const largeAirports = airports.filter(d => d.type === "large_airport" && d.wikipedia_link);
+  const largeAirports = airportsData.filter(d => d.type === "large_airport" && d.wikipedia_link);
 
-  // COMPLETE Country code to name mapping
   const countryCodeToName = {
     "RU": "Russia", "GH": "Ghana", "US": "United States of America", "GB": "United Kingdom",
     "FR": "France", "DE": "Germany", "IT": "Italy", "ES": "Spain", "JP": "Japan", "CN": "China",
@@ -247,88 +561,52 @@
     "CV": "Cape Verde", "ST": "São Tomé and Príncipe", "GQ": "Equatorial Guinea"
   };
 
+  // Global state for multiview
+  let multiviewMode = false;
+  let globeInstances = []; // Array to hold references to each globe's elements
+  let allDatasets = {}; // Stores loaded data for 'jan', 'apr', 'dec'
+  let currentDatasetKey = 'jan'; // Tracks active dataset in single view
 
-  // Projection + path
+  // Shared projection and path for synchronization
   let projection = d3.geoOrthographic()
     .scale(250)
     .center([0,0])
     .rotate([0, -30])
     .translate([width/2, height/2]);
-
   let path = d3.geoPath().projection(projection);
   const initialScale = projection.scale();
 
-  // SVG containers
-  const svg = d3.select("#map").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-  const svg2 = d3.select("#xxx").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-  svg2.append("text")
-    .attr("x", 20).attr("y", 300)
-    .attr("font-size", "14px")
-    .attr("font-family", "sans-serif")
-    .attr("fill", "black")
-    .text("Data Source: OpenSky Network (https://opensky-network.org)");
-
-  // Globe circle
-  svg.append("circle")
-    .attr("fill", "#EEE")
-    .attr("stroke", "#000")
-    .attr("stroke-width", 0.2)
-    .attr("cx", width/2)
-    .attr("cy", height/2)
-    .attr("r", projection.scale());
-
-  // Map layer
-  const map = svg.append("g");
-  const countryPaths = map.append("g")
-    .selectAll("path.country")
-    .data(world.features)
-    .enter()
-    .append("path")
-    .attr("class", "country")
-    .attr("d", path)
-    .attr("fill", "white")
-    .style("stroke", "black")
-    .style("stroke-width", 0.3)
-    .style("opacity", 0.8);
-
-  // Points and paths groups
-  const pointsGroup = svg.append("g");
-  const pathsGroup = svg.append("g");
-  const specialAirportsGroup = svg.append("g").attr("class", "special-airports");
-  const allAirportsGroup = svg.append("g").attr("class", "all-airports");
-
-  // Add all large airports
-  const airportRects = allAirportsGroup.selectAll("rect.airport")
-    .data(largeAirports)
-    .enter().append("rect")
-    .attr("class", "airport")
-    .attr("width", 5)
-    .attr("height", 5)
-    .attr("fill", "blue")
-    .attr("opacity", 0.7)
-    .on("click", (event, d) => { 
-      event.stopPropagation(); 
-      showAirportInfo(d); 
-    });
-
   // UI references
   const infoBox = d3.select("#infoBox");
-  const dropdown = d3.select("#prefixDropdown");
+  const dateDropdown = d3.select("#dateDropdown"); // Moved declaration here
+  dateDropdown.on("change", function() {
+    currentDatasetKey = this.value;
+    // console.log("Date dropdown changed to:", currentDatasetKey);
+
+    if (!multiviewMode) {
+      // If in single view, remove the old globe and create a new one with the selected dataset
+      globeInstances.forEach(g => g.svg.remove()); // Remove existing single globe
+      globeInstances = []; // Clear the array
+      globeInstances.push(createGlobe("#map", currentDatasetKey));
+    }
+    
+    // Update all globes (including the newly created one if in single view)
+    const minutes = Math.round(xScale.invert(handle.attr("cx")));
+    updateAllGlobes(minutes);
+  });
+  const prefixDropdown = d3.select("#prefixDropdown"); // ADDED THIS LINE
+  const countryDropdown = d3.select("#countryDropdown");
   const autorotateBtn = d3.select("#autorotateButton");
   const playPauseBtn = d3.select("#playPauseButton");
+  const multiviewBtn = d3.select("#multiviewButton");
 
   // State
   let activeFlight = null;
   let activePrefixHighlight = null;
+  let activeCountryHighlight = null;
   let activeAircraftHighlight = null;
   let activeAirport = null;
-  let autorotate = true;
+  let autorotate = false;
   let playing = false;
   let playTimer = null;
 
@@ -342,154 +620,717 @@
   .range([minScale, maxScale])
   .clamp(true);
 
-  // Get active flights
-  function getActiveFlights(time) {
-    if (!time) return flights;
-    return flights.filter(f => {
-      if (f.firstseen && f.lastseen) return f.firstseen <= time && time <= f.lastseen;
-      if (f.timestamp && typeof f.timestamp === 'number') return true;
-      return true;
+  // Helper function to get country for a flight
+  function getCountryForFlight(f) {
+    const prefix = (f.callsign || "").slice(0, 3).toUpperCase();
+    const airlineInfo = faaLookup[prefix];
+    return (airlineInfo && airlineInfo.Country) ? airlineInfo.Country : null;
+  }
+
+  // Haversine distance function
+  function haversineDistance(coords1, coords2) {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (coords2.lat - coords1.lat) * Math.PI / 180;
+    const dLon = (coords2.lon - coords1.lon) * Math.PI / 180;
+    const lat1 = coords1.lat * Math.PI / 180;
+    const lat2 = coords1.lat * Math.PI / 180;
+
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c;
+  }
+
+  // Interpolate position
+  function interpolatePosition(positions, time) {
+    if (!positions || positions.length === 0) return null;
+    if (positions.length === 1) return { lat: positions[0].lat, lon: positions[0].lon, altitude: positions[0].altitude };
+
+    const timeMs = time.getTime();
+
+    for (let i = 0; i < positions.length - 1; i++) {
+      const p1 = positions[i];
+      const p2 = positions[i+1];
+      const t1 = p1.time.getTime();
+      const t2 = p2.time.getTime();
+
+      if (timeMs >= t1 && timeMs <= t2) {
+        const ratio = (t2 - t1) > 0 ? (timeMs - t1) / (t2 - t1) : 0;
+        const lat = p1.lat + (p2.lat - p1.lat) * ratio;
+        const lon = p1.lon + (p2.lon - p1.lon) * ratio;
+        const alt = (p1.altitude || 0) + ((p2.altitude || 0) - (p1.altitude || 0)) * ratio;
+        return { lat, lon, altitude: alt };
+      }
+    }
+    
+    if (timeMs < positions[0].time.getTime()) return { lat: positions[0].lat, lon: positions[0].lon, altitude: positions[0].altitude };
+    return { lat: positions[positions.length-1].lat, lon: positions[positions.length-1].lon, altitude: positions[positions.length-1].altitude };
+  }
+
+  // Pre-calculates all positions AND UI data for every 5-min interval on load
+  function processFlightsData(rawFlights, datasetStartTime) {
+    const icaoMap = new Map();
+    rawFlights.forEach(f => {
+      if (!f.icao24) return;
+      if (!icaoMap.has(f.icao24)) {
+        icaoMap.set(f.icao24, { ...f, positions: [] });
+      }
+      const flight = icaoMap.get(f.icao24);
+      const time = f.firstseen ? new Date(f.firstseen) : (f.timestamp ? new Date(datasetStartTime.getTime() + f.timestamp * 1000) : null);
+      if (time) {
+        flight.positions.push({
+          time: time,
+          lat: +f.latitude_1,
+          lon: +f.longitude_1,
+          altitude: +f.altitude
+        });
+      }
+    });
+
+    // console.log("Pre-calculating positions...");
+    icaoMap.forEach(flight => {
+      flight.positions.sort((a, b) => a.time - b.time);
+      if (flight.positions.length > 0) {
+        flight.firstseen = flight.positions[0].time;
+        flight.lastseen = flight.positions[flight.positions.length - 1].time;
+
+        flight.precalculated = {};
+        for (let minutes = 0; minutes <= totalMinutes; minutes += stepMinutes) {
+            const currentTime = new Date(datasetStartTime.getTime() + minutes * 60000);
+            if (currentTime >= flight.firstseen && currentTime <= flight.lastseen) {
+                const pos = interpolatePosition(flight.positions, currentTime);
+                if (pos) {
+                    flight.precalculated[minutes] = pos;
+                }
+            }
+        }
+      }
+    });
+    // console.log("Pre-calculation complete.");
+
+    const precalculatedUiData = new Map();
+    for (let minutes = 0; minutes <= totalMinutes; minutes += stepMinutes) {
+        const activeFlights = Array.from(icaoMap.values()).filter(f => f.precalculated && f.precalculated[minutes]);
+        
+        const prefixCounts = {};
+        const countryIcaoSets = new Map();
+
+        activeFlights.forEach(f => {
+            const prefix = (f.callsign||"").slice(0,3).toUpperCase();
+            if (!prefix) return;
+            prefixCounts[prefix] = (prefixCounts[prefix] || 0) + 1;
+
+            const airlineInfo = faaLookup[prefix];
+            if (airlineInfo && airlineInfo.Country) {
+              if (!countryIcaoSets.has(airlineInfo.Country)) {
+                countryIcaoSets.set(airlineInfo.Country, new Set());
+              }
+              countryIcaoSets.get(airlineInfo.Country).add(f.icao24);
+            }
+        });
+
+        const newTopPrefixes = Object.entries(prefixCounts)
+            .sort((a,b)=>b[1]-a[1])
+            .slice(0,20)
+            .map(d=>d[0]);
+
+        const countryCounts = new Map();
+        countryIcaoSets.forEach((icaoSet, country) => {
+          countryCounts.set(country, icaoSet.size);
+        });
+
+        const newTopCountries = Array.from(countryCounts.entries())
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 20)
+            .map(d => d[0]);
+
+        precalculatedUiData.set(minutes, { 
+          topPrefixes: newTopPrefixes, 
+          prefixCounts,
+          topCountries: newTopCountries,
+          countryCounts
+        });
+    }
+    // console.log("UI pre-calculation complete.");
+
+    return { flightsByIcao: icaoMap, flights: Array.from(icaoMap.values()), precalculatedUiData };
+  }
+
+  // Load all datasets at once
+  async function loadAllDatasets() {
+    // const dateInfo = { ... }; // REMOVED: now global
+
+    for (const key in dateInfo) {
+      const info = dateInfo[key];
+      const rowConversion = d => ({
+        ...d,
+        firstseen: d.firstseen ? new Date(d.firstseen) : null,
+        timestamp: d.timestamp && !isNaN(+d.timestamp) ? +d.timestamp : null
+      });
+
+      const [rawFlights1, rawFlights2] = await Promise.all([
+          d3.csv(info.day1, rowConversion),
+          d3.csv(info.day2, rowConversion)
+      ]);
+      const combinedRawFlights = rawFlights1.concat(rawFlights2);
+      allDatasets[key] = processFlightsData(combinedRawFlights, info.startTime);
+    }
+    // console.log("All datasets loaded.");
+  }
+
+  // Globe creation and management
+  function createGlobe(containerSelector, datasetKey) {
+    const container = d3.select(containerSelector);
+    // Remove any existing SVG to prevent duplicates when re-creating globes in multiview
+    container.select("svg").remove(); 
+
+    const currentWidth = container.node().getBoundingClientRect().width;
+    const currentHeight = multiviewMode ? 300 : height; 
+
+    const svg = container.append("svg")
+      .attr("width", currentWidth)
+      .attr("height", currentHeight);
+
+    // Create a local projection for this globe instance
+    const localProjection = d3.geoOrthographic()
+      .scale(initialScale * (multiviewMode ? 0.4 : 1)) // Scale down for multiview
+      .center([0,0])
+      .rotate(projection.rotate()) // Initialize with the shared projection's rotation
+      .translate([currentWidth/2, currentHeight/2]);
+    
+    const localPath = d3.geoPath().projection(localProjection);
+
+    // Globe circle
+    svg.append("circle")
+      .attr("fill", "#EEE")
+      .attr("stroke", "#000")
+      .attr("stroke-width", 0.2)
+      .attr("cx", currentWidth/2)
+      .attr("cy", currentHeight/2)
+      .attr("r", localProjection.scale()); 
+
+    const mapGroup = svg.append("g");
+    const countryPaths = mapGroup.append("g")
+      .selectAll("path.country")
+      .data(world.features)
+      .enter()
+      .append("path")
+      .attr("class", "country")
+      .attr("d", localPath)
+      .attr("fill", "white")
+      .style("stroke", "black")
+      .style("stroke-width", 0.3)
+      .style("opacity", 0.8);
+
+    const pathsGroup = svg.append("g"); // Flight paths
+    const allAirportsGroup = svg.append("g").attr("class", "all-airports"); // All airports
+    const specialAirportsGroup = svg.append("g").attr("class", "special-airports"); // Special airports (selected)
+    const pointsGroup = svg.append("g"); // Flight circles (should be on top)
+
+    // Add all large airports
+    allAirportsGroup.selectAll("rect.airport")
+      .data(largeAirports)
+      .enter().append("rect")
+      .attr("class", "airport")
+      .attr("width", 5)
+      .attr("height", 5)
+      .attr("fill", "blue")
+      .attr("opacity", 0.7)
+      .on("click", (event, d) => { 
+        event.stopPropagation(); 
+        showAirportInfo(d, datasetKey); 
+      });
+
+    function getActiveFlightsByTimeSlot(minutes) {
+        const timeSlot = Math.round(minutes / stepMinutes) * stepMinutes;
+        return allDatasets[datasetKey].flights.filter(f => f.precalculated && f.precalculated[timeSlot]);
+    }
+
+    function applyHighlightColors() {
+      pointsGroup.selectAll("circle.flight")
+        .attr("fill", d => {
+          const prefix = (d.callsign||"").slice(0,3).toUpperCase();
+          if (activeAircraftHighlight && (d.registration||"").toUpperCase() === activeAircraftHighlight) return "lime";
+          if (activeFlight && d.icao24 === activeFlight.icao24) return "yellow";
+          return colorScale(prefix);
+        })
+        .classed("pulsing", false);
+    }
+
+    function reprojectPaths() {
+      pathsGroup.selectAll("path.flightPath")
+        .attr("d", function(dPositions) {
+          if (!Array.isArray(dPositions) || dPositions.length < 2) return null;
+          const projected = dPositions
+            .map(p => {
+              const pr = localProjection([p.lon, p.lat]); // Use localProjection
+              return pr ? [pr[0], pr[1]] : null;
+            })
+            .filter(p => p !== null);
+          if (projected.length < 2) return null;
+          return d3.line()(projected);
+        });
+    }
+
+    function updateAllAirportPositions() {
+      allAirportsGroup.selectAll("rect.airport")
+        .attr("x", d => {
+          const p = localProjection([+d.longitude_deg, +d.latitude_deg]); // Use localProjection
+          return p ? p[0] - 2.5 : -100;
+        })
+        .attr("y", d => {
+          const p = localProjection([+d.longitude_deg, +d.latitude_deg]); // Use localProjection
+          return p ? p[1] - 2.5 : -100;
+        });
+    }
+
+    function updateSpecialAirportPositions() {
+      specialAirportsGroup.selectAll("rect.special-airport")
+        .attr("x", d => {
+          const p = localProjection([+d.ap.longitude_deg, +d.ap.latitude_deg]); // Use localProjection
+          return p ? p[0] - 3 : -100;
+        })
+        .attr("y", d => {
+          const p = localProjection([+d.ap.longitude_deg, +d.ap.latitude_deg]); // Use localProjection
+          return p ? p[1] - 3 : -100;
+        });
+
+      specialAirportsGroup.selectAll("text.special-airport")
+        .attr("x", d => {
+          const p = localProjection([+d.ap.longitude_deg, +d.ap.latitude_deg]); // Use localProjection
+          return p ? p[0] + 8 : -100;
+        })
+        .attr("y", d => {
+          const p = localProjection([+d.ap.longitude_deg, +d.ap.latitude_deg]); // Use localProjection
+          return p ? p[1] + 4 : -100;
+        });
+    }
+
+    // This function will only update the positions of existing flight circles and airports
+    function renderFlightsOnly(minutes) {
+      const timeSlot = Math.round(minutes / stepMinutes) * stepMinutes;
+      
+      pointsGroup.selectAll("circle.flight")
+        .each(function(d) {
+          const pos = d.precalculated[timeSlot];
+          if (pos) {
+            const p = localProjection([pos.lon, pos.lat]); // Use localProjection
+            d3.select(this)
+              .attr("cx", p ? p[0] : -100)
+              .attr("cy", p ? p[1] : -100)
+              .attr("transform", `scale(${altitudeScale(pos.altitude || 0)})`);
+          }
+        });
+      
+    }
+
+    // This function will handle data binding and full redraw
+    function updateFlightsAndUI(minutes) {
+      // console.log(`updateFlightsAndUI start: activePrefixHighlight=${activePrefixHighlight}, activeCountryHighlight=${activeCountryHighlight}`);
+      const timeSlot = Math.round(minutes / stepMinutes) * stepMinutes; // Corrected typo here
+      
+      let activeFlights = getActiveFlightsByTimeSlot(minutes);
+
+      if (activePrefixHighlight) {
+        activeFlights = activeFlights.filter(f => (f.callsign || "").toUpperCase().startsWith(activePrefixHighlight));
+      } else if (activeCountryHighlight) {
+        activeFlights = activeFlights.filter(f => getCountryForFlight(f) === activeCountryHighlight);
+      } else {
+        const uiData = allDatasets[datasetKey].precalculatedUiData.get(timeSlot);
+        const topPrefixesSet = new Set(uiData ? uiData.topPrefixes : []);
+        activeFlights = activeFlights.filter(f => topPrefixesSet.has((f.callsign || "").slice(0, 3).toUpperCase()));
+      }
+
+      const circles = pointsGroup.selectAll("circle.flight")
+        .data(activeFlights, d => d.icao24);
+
+      circles.enter()
+        .append("circle")
+        .attr("class", "flight")
+        .attr("r", 2.8)
+        .attr("opacity", 0.85)
+        .on("click", (event, d) => { event.stopPropagation(); selectFlight(d, datasetKey); })
+        .merge(circles)
+        .each(function(d) {
+          const pos = d.precalculated[timeSlot];
+          if (pos) {
+            const p = localProjection([pos.lon, pos.lat]); // Use localProjection
+            d3.select(this)
+              .attr("cx", p ? p[0] : -100)
+              .attr("cy", p ? p[1] : -100)
+              .attr("transform", `scale(${altitudeScale(pos.altitude || 0)})`);
+          }
+        });
+
+      circles.exit().remove();
+      applyHighlightColors();
+    }
+
+    function clearSelection() {
+      activeFlight = null;
+      activeAirport = null;
+      activeAircraftHighlight = null;
+      pathsGroup.selectAll("path.flightPath").remove();
+      specialAirportsGroup.selectAll("*").remove();
+      applyHighlightColors();
+    }
+
+    // Drag rotation
+    let currentRotation; // To store the current rotation during drag
+
+    svg.call(d3.drag()
+      .on("start", function(event) {
+        currentRotation = projection.rotate(); // Get the current rotation at the start
+      })
+      .on("drag", function(event) {
+        const k = sensitivity / projection.scale();
+        currentRotation[0] += event.dx * k; // Increment longitude
+        currentRotation[1] -= event.dy * k; // Decrement latitude (inverted)
+
+        projection.rotate(currentRotation); // Apply the updated rotation
+        updateAllGlobesProjection(true);
+      })
+      .on("end", function() {
+        updateAllGlobesProjection(false);
+      })
+    );
+
+    
+
+    return {
+      svg, mapGroup, countryPaths, pointsGroup, pathsGroup, specialAirportsGroup, allAirportsGroup,
+      update: updateFlightsAndUI, 
+      renderFlightsOnly, 
+      clearSelection, applyHighlightColors, reprojectPaths, updateAllAirportPositions, updateSpecialAirportPositions,
+      datasetKey,
+      localProjection, // Expose local projection
+      path: localPath // Expose local path
+    };
+  }
+
+  // Function to update all globes' projections and optionally only render flights
+  function updateAllGlobesProjection(renderOnlyFlights = false) {
+    globeInstances.forEach(globe => {
+      const container = d3.select(globe.svg.node().parentNode);
+      const currentWidth = container.node().getBoundingClientRect().width;
+      //const currentHeight = multiviewMode ? 300 : height;
+      const currentHeight = height;
+      
+      globe.svg.attr("width", currentWidth)
+               .attr("height", currentHeight);
+
+      globe.localProjection
+        .scale(projection.scale()) // Use the shared projection's current scale
+        .rotate(projection.rotate()) // Sync rotation from shared projection
+        .translate([currentWidth/2, currentHeight/2]);
+
+      globe.svg.select("circle")
+        .attr("cx", currentWidth/2)
+        .attr("cy", currentHeight/2)
+        .attr("r", globe.localProjection.scale());
+
+      globe.countryPaths.attr("d", globe.path); // Use globe.path which uses localProjection
+      globe.reprojectPaths();
+      globe.updateAllAirportPositions();
+      globe.updateSpecialAirportPositions();
+
+      const minutes = Math.round(xScale.invert(handle.attr("cx")));
+      if (renderOnlyFlights) {
+        globe.renderFlightsOnly(minutes);
+      } else {
+        globe.update(minutes); // Call the full update (updateFlightsAndUI)
+      }
+    });
+
+    // Update globe coordinates label
+    const geographicCenter = projection.invert([width/2, height/2]);
+    if (geographicCenter) { // Ensure geographicCenter is not null (can happen if projection is invalid)
+      d3.select("#globeCoordinatesLabel").text(`Center: Lon ${geographicCenter[0].toFixed(2)}, Lat ${geographicCenter[1].toFixed(2)}`);
+    } else {
+      d3.select("#globeCoordinatesLabel").text(`Center: N/A`);
+    }
+  }
+
+  // Main update function for all globes
+  function updateAllGlobes(minutes) {
+    const timeSlot = Math.round(minutes / stepMinutes) * stepMinutes;
+    const uiData = allDatasets[currentDatasetKey].precalculatedUiData.get(timeSlot); // Use currentDatasetKey for UI data
+
+    updatePrefixChart(uiData);
+    updateCountryChart(uiData);
+
+    globeInstances.forEach(globe => {
+      globe.update(minutes);
     });
   }
 
-  // Update dropdown
-  function updateDropdown(activeFlights) {
-    const prefixCounts = {};
-    activeFlights.forEach(f => {
-      const prefix = (f.callsign||"").slice(0,3).toUpperCase();
-      if (!prefix) return;
-      prefixCounts[prefix] = (prefixCounts[prefix] || 0) + 1;
-    });
-    const topPrefixes = Object.entries(prefixCounts)
-      .sort((a,b)=>b[1]-a[1])
-      .slice(0,20)
-      .map(d=>d[0]);
+  function updatePrefixChart(uiData) {
+    const svg2 = d3.select("#xxx").select("svg");
+    // svg2.selectAll("*").remove(); // Removed brute-force clear
 
-    const options = dropdown.selectAll("option.prefix").data(topPrefixes, d=>d);
+    if (!uiData || !uiData.topPrefixes || uiData.topPrefixes.length === 0) {
+      // Handle no data case by clearing existing elements and showing message
+      svg2.selectAll("*").remove();
+      svg2.attr("height", 50).append("text").attr("x", 10).attr("y", 20).attr("font-size", "12px").text("No flight data for this time.");
+      return;
+    };
+
+    const topPrefixes = uiData.topPrefixes;
+    const prefixCounts = uiData.prefixCounts;
+
+    // Update options for dropdown (already using update pattern)
+    const options = prefixDropdown.selectAll("option.prefix").data(topPrefixes, d=>d);
     options.enter().append("option").attr("class","prefix").merge(options)
       .attr("value", d=>d)
-      .text(d=> faaLookup[d] ? faaLookup[d].Company : d);
+      .text(d=> faaLookup[d] ? `${faaLookup[d].Company} (${d})` : d)
+      .property("selected", d => d === activePrefixHighlight); // Set selected property
     options.exit().remove();
 
-    if (!topPrefixes.includes(activePrefixHighlight)) {
-      activePrefixHighlight = null;
-      dropdown.property("value", "");
+    // Add the currently active prefix highlight if it's not already in the options
+    if (activePrefixHighlight && !topPrefixes.includes(activePrefixHighlight)) {
+      prefixDropdown.append("option")
+        .attr("class", "prefix")
+        .attr("value", activePrefixHighlight)
+        .text(faaLookup[activePrefixHighlight] ? `${faaLookup[activePrefixHighlight].Company} (${activePrefixHighlight})` : activePrefixHighlight)
+        .property("selected", true); // Mark as selected
     }
 
-    // Bar chart
-    svg2.selectAll("*").remove();
-    svg2.append("text")
-      .attr("x", 10).attr("y", 20)
-      .attr("font-size", "12px")
-      .text("Top prefixes (live)");
-
-    if (topPrefixes.length) {
-      const barMargin = {top: 200, right: 20, bottom: 30, left: 140};
-      const barWidth = width - barMargin.left - barMargin.right;
-      const barHeight = Math.max(100, topPrefixes.length * 18);
-      const xScale = d3.scaleLinear()
-        .domain([0, d3.max(Object.values(prefixCounts)) || 1])
-        .range([0, barWidth]);
-      const yScale = d3.scaleBand()
-        .domain(topPrefixes)
-        .range([0, barHeight])
-        .padding(0.1);
-      const barGroup = svg2.append("g").attr("transform", `translate(${barMargin.left},${barMargin.top})`);
-      barGroup.selectAll("rect")
-        .data(topPrefixes)
-        .enter().append("rect")
-        .attr("y", d=>yScale(d))
-        .attr("width", d=>xScale(prefixCounts[d]||0))
-        .attr("height", yScale.bandwidth())
-        .attr("fill", "steelblue");
-      barGroup.selectAll("text.label")
-        .data(topPrefixes)
-        .enter().append("text")
-        .attr("class","label")
-        .attr("x", d=>xScale(prefixCounts[d]||0) + 5)
-        .attr("y", d=>yScale(d) + yScale.bandwidth()/2 + 4)
-        .text(d=>`${faaLookup[d] ? faaLookup[d].Company : d} (${prefixCounts[d]||0})`)
-        .attr("font-size", "11px");
-      const xAxis = d3.axisBottom(xScale).ticks(4);
-      barGroup.append("g").attr("transform", `translate(0,${barHeight})`).call(xAxis);
+    // Update chart title
+    let chartTitle = svg2.select("text.chart-title");
+    if (chartTitle.empty()) {
+      chartTitle = svg2.append("text").attr("class", "chart-title").attr("x", 10).attr("y", 20).attr("font-size", "12px");
     }
+    chartTitle.text("Top prefixes (live)");
+
+    let maxLabelWidth = 0;
+    // Temporarily append labels to measure width, then remove
+    const tempLabels = svg2.append("g").attr("class", "temp-labels").style("opacity", 0).selectAll("text").data(topPrefixes).enter().append("text").attr("font-size", "11px").text(d => faaLookup[d] ? faaLookup[d].Company : d);
+    tempLabels.each(function() { maxLabelWidth = Math.max(maxLabelWidth, this.getBBox().width); });
+    tempLabels.remove();
+
+    const barMargin = {top: 40, right: 30, bottom: 30, left: maxLabelWidth + 15};
+    const barHeight = Math.max(100, topPrefixes.length * 18);
+    svg2.attr("height", barMargin.top + barHeight + barMargin.bottom);
+    const barWidth = width - barMargin.left - barMargin.right;
+    
+    if (barWidth < 50) return;
+
+    const xScale = d3.scaleLinear().domain([0, d3.max(topPrefixes, d => prefixCounts[d]) || 1]).range([0, barWidth]);
+    const yScale = d3.scaleBand().domain(topPrefixes).range([0, barHeight]).padding(0.1);
+    
+    let barGroup = svg2.select("g.bar-group");
+    if (barGroup.empty()) {
+      barGroup = svg2.append("g").attr("class", "bar-group");
+    }
+    barGroup.attr("transform", `translate(${barMargin.left},${barMargin.top})`);
+
+    // Update bars
+    const bars = barGroup.selectAll("rect")
+      .data(topPrefixes, d => d);
+
+    bars.enter().append("rect")
+      .attr("y", d => yScale(d))
+      .attr("height", yScale.bandwidth())
+      .attr("fill", d => colorScale(d))
+      .merge(bars)
+      .transition().duration(200) // Add a small transition for smoothness
+      .attr("width", d => xScale(prefixCounts[d] || 0));
+
+    bars.exit().remove();
+
+    // Update labels
+    const labels = barGroup.selectAll("text.label")
+      .data(topPrefixes, d => d);
+
+    labels.enter().append("text")
+      .attr("class", "label")
+      .attr("x", -5)
+      .attr("text-anchor", "end")
+      .attr("font-size", "11px")
+      .merge(labels)
+      .transition().duration(200)
+      .attr("y", d => yScale(d) + yScale.bandwidth() / 2 + 4)
+      .text(d => faaLookup[d] ? faaLookup[d].Company : d);
+
+    labels.exit().remove();
+
+    // Update count labels
+    const countLabels = barGroup.selectAll("text.count-label")
+      .data(topPrefixes, d => d);
+
+    countLabels.enter().append("text")
+      .attr("class", "count-label")
+      .attr("font-size", "11px")
+      .merge(countLabels)
+      .transition().duration(200)
+      .attr("x", d => xScale(prefixCounts[d] || 0) + 5)
+      .attr("y", d => yScale(d) + yScale.bandwidth() / 2 + 4)
+      .text(d => prefixCounts[d] || 0);
+
+    countLabels.exit().remove();
+
+    // Update axis
+    let xAxisGroup = barGroup.select("g.x-axis");
+    if (xAxisGroup.empty()) {
+      xAxisGroup = barGroup.append("g").attr("class", "x-axis");
+    }
+    xAxisGroup.attr("transform", `translate(0,${barHeight})`).call(d3.axisBottom(xScale).ticks(4));
   }
 
-  // Update flights
-  function updateFlights(time) {
-    const activeFlights = getActiveFlights(time);
-    updateDropdown(activeFlights);
+  function updateCountryChart(uiData) {
+    const svg3 = d3.select("#yyy").select("svg");
+    // svg3.selectAll("*").remove(); // Removed brute-force clear
 
-    const circles = pointsGroup.selectAll("circle.flight")
-      .data(activeFlights, d=>d.icao24);
+    if (!uiData || !uiData.topCountries || uiData.topCountries.length === 0) {
+      // Handle no data case by clearing existing elements and showing message
+      svg3.selectAll("*").remove();
+      svg3.attr("height", 50).append("text").attr("x", 10).attr("y", 20).attr("font-size", "12px").text("No country data for this time.");
+      return;
+    }
 
-    circles.enter()
-      .append("circle")
-      .attr("class","flight")
-      .attr("r", 2.8)
-      .attr("opacity", 0.85)
-      .on("click", (event,d) => { event.stopPropagation(); selectFlight(d); })
-      .merge(circles)
-      .attr("cx", d => {
-        const p = projection([+d.longitude_1, +d.latitude_1]);
-        return p ? p[0] : -100;
-      })
-      .attr("cy", d => {
-        const p = projection([+d.longitude_1, +d.latitude_1]);
-        return p ? p[1] : -100;
-      });
-      // .attr("transform", d => {
-      //   const alt = +d.altitude || 0;
-      //   console.log("Flight altitude:", alt);
-      //   return "scale(${d.altitude}";
-      // });
-    circles.exit().remove();
-    applyHighlightColors();
+    const topCountries = uiData.topCountries;
+    const countryCounts = uiData.countryCounts;
+
+    // Update options for dropdown (already using update pattern)
+    const options = countryDropdown.selectAll("option.country").data(topCountries, d => d);
+    options.enter().append("option").attr("class", "country").merge(options)
+      .attr("value", d => d)
+      .text(d => d)
+      .property("selected", d => d === activeCountryHighlight); // Set selected property
+    options.exit().remove();
+
+    // Add the currently active country highlight if it's not already in the options
+    if (activeCountryHighlight && !topCountries.includes(activeCountryHighlight)) {
+      countryDropdown.append("option")
+        .attr("class", "country")
+        .attr("value", activeCountryHighlight)
+        .text(activeCountryHighlight)
+        .property("selected", true); // Mark as selected
+    }
+
+    // Update chart title
+    let chartTitle = svg3.select("text.chart-title");
+    if (chartTitle.empty()) {
+      chartTitle = svg3.append("text").attr("class", "chart-title").attr("x", 10).attr("y", 20).attr("font-size", "12px");
+    }
+    chartTitle.text("Top Countries by flights (live)");
+
+    let maxLabelWidth = 0;
+    const tempLabels = svg3.append("g").attr("class", "temp-labels").style("opacity", 0).selectAll("text").data(topCountries).enter().append("text").attr("font-size", "11px").text(d => d);
+    tempLabels.each(function() { maxLabelWidth = Math.max(maxLabelWidth, this.getBBox().width); });
+    tempLabels.remove();
+
+    const barMargin = {top: 40, right: 30, bottom: 30, left: maxLabelWidth + 15};
+    const barHeight = Math.max(100, topCountries.length * 18);
+    svg3.attr("height", barMargin.top + barHeight + barMargin.bottom);
+    const barWidth = width - barMargin.left - barMargin.right;
+
+    if (barWidth < 50) return;
+
+    const xScale = d3.scaleLinear().domain([0, d3.max(topCountries, d => countryCounts.get(d)) || 1]).range([0, barWidth]);
+    const yScale = d3.scaleBand().domain(topCountries).range([0, barHeight]).padding(0.1);
+    
+    let barGroup = svg3.select("g.bar-group");
+    if (barGroup.empty()) {
+      barGroup = svg3.append("g").attr("class", "bar-group");
+    }
+    barGroup.attr("transform", `translate(${barMargin.left},${barMargin.top})`);
+
+    // Update bars
+    const bars = barGroup.selectAll("rect")
+      .data(topCountries, d => d);
+
+    bars.enter().append("rect")
+      .attr("y", d => yScale(d))
+      .attr("height", yScale.bandwidth())
+      .attr("fill", d => colorScale(d))
+      .merge(bars)
+      .transition().duration(200)
+      .attr("width", d => xScale(countryCounts.get(d) || 0));
+
+    bars.exit().remove();
+
+    // Update labels
+    const labels = barGroup.selectAll("text.label")
+      .data(topCountries, d => d);
+
+    labels.enter().append("text")
+      .attr("class", "label")
+      .attr("x", -5)
+      .attr("text-anchor", "end")
+      .attr("font-size", "11px")
+      .merge(labels)
+      .transition().duration(200)
+      .attr("y", d => yScale(d) + yScale.bandwidth() / 2 + 4)
+      .text(d => d);
+
+    labels.exit().remove();
+
+    // Update count labels
+    const countLabels = barGroup.selectAll("text.count-label")
+      .data(topCountries, d => d);
+
+    countLabels.enter().append("text")
+      .attr("class", "count-label")
+      .attr("font-size", "11px")
+      .merge(countLabels)
+      .transition().duration(200)
+      .attr("x", d => xScale(countryCounts.get(d) || 0) + 5)
+      .attr("y", d => yScale(d) + yScale.bandwidth() / 2 + 4)
+      .text(d => countryCounts.get(d) || 0);
+
+    countLabels.exit().remove();
+
+    // Update axis
+    let xAxisGroup = barGroup.select("g.x-axis");
+    if (xAxisGroup.empty()) {
+      xAxisGroup = barGroup.append("g").attr("class", "x-axis");
+    }
+    xAxisGroup.attr("transform", `translate(0,${barHeight})`).call(d3.axisBottom(xScale).ticks(4));
   }
 
-  // Animate country
   function animateCountry(countryName) {
-    countryPaths.classed("country-wave", false);
-    if (!countryName) return;
-    console.log("Animating country:", countryName);
-    const animated = countryPaths
-      .filter(function(d) { return d.properties.name === countryName; })
-      .classed("country-wave", true);
-    console.log("Found countries:", animated.size());
+    globeInstances.forEach(globe => {
+      globe.countryPaths.classed("country-wave", false);
+      if (!countryName) return;
+      globe.countryPaths
+        .filter(function(d) { return d.properties.name === countryName; })
+        .classed("country-wave", true);
+    });
   }
 
   function clearCountryAnimation() {
-    countryPaths.classed("country-wave", false);
+    globeInstances.forEach(globe => {
+      globe.countryPaths.classed("country-wave", false);
+    });
   }
 
-  // Select flight
-  function selectFlight(f) {
+  function selectFlight(f, datasetKey) {
     activeFlight = f;
     activeAirport = null;
-    activePrefixHighlight = null;
     activeAircraftHighlight = (f.registration||"").toUpperCase();
     clearCountryAnimation();
-    applyHighlightColors();
-    pathsGroup.selectAll("path.flightPath").remove();
+    
+    globeInstances.forEach(globe => globe.applyHighlightColors());
+    
+    // Clear paths on all globes, then draw on the one where the flight was selected
+    globeInstances.forEach(globe => globe.pathsGroup.selectAll("path.flightPath").remove());
 
-    const flightPositions = flights
-      .filter(d => d.icao24 === f.icao24)
-      .sort((a,b) => {
-        const ta = a.timestamp || (a.firstseen ? a.firstseen.getTime() : 0);
-        const tb = b.timestamp || (b.firstseen ? b.firstseen.getTime() : 0);
-        return (ta || 0) - (tb || 0);
-      });
+    const currentGlobe = globeInstances.find(g => g.datasetKey === datasetKey);
+    if (!currentGlobe) return;
+
+    const flightPositions = f.positions;
 
     if (flightPositions.length > 1) {
       const projectedPoints = flightPositions
         .map(p => {
-          const pr = projection([+p.longitude_1, +p.latitude_1]);
+          const pr = currentGlobe.localProjection([p.lon, p.lat]); // Use currentGlobe's localProjection
           return pr ? [pr[0], pr[1]] : null;
         })
         .filter(pp => pp);
 
       if (projectedPoints.length > 1) {
-        const pathElement = pathsGroup.append("path")
+        const pathElement = currentGlobe.pathsGroup.append("path")
           .datum(flightPositions)
           .attr("class", "flightPath")
           .attr("fill", "none")
@@ -499,7 +1340,7 @@
           .attr("stroke-linecap", "round")
           .attr("stroke-linejoin", "round");
 
-        const initialD = d3.line().curve(d3.curveNatural)(projectedPoints);
+        const initialD = d3.line()(projectedPoints);
         pathElement.attr("d", initialD);
 
         try {
@@ -534,9 +1375,8 @@
         <table style="font-size:12px; border-collapse: collapse; margin-top:6px;">
           <tr><th align="left">Time (UTC)</th><th align="left">Latitude</th><th align="left">Longitude</th></tr>
           ${subset.map(p => {
-            const time = p.firstseen ? p.firstseen.toISOString().substring(11,19) :
-                         (typeof p.timestamp === "number" ? new Date(startTime.getTime() + p.timestamp*1000).toISOString().substring(11,19) : "N/A");
-            return `<tr><td>${time}</td><td>${(+p.latitude_1).toFixed(2)}</td><td>${(+p.longitude_1).toFixed(2)}</td></tr>`;
+            const time = p.time.toISOString().substring(11,19);
+            return `<tr><td>${time}</td><td>${p.lat.toFixed(2)}</td><td>${p.lon.toFixed(2)}</td></tr>`;
           }).join("")}
         </table>
         <div style="margin-top:6px; text-align:center;">
@@ -594,36 +1434,95 @@
     if (origAirport) airportPoints.push({ap: origAirport, color: "green", label: "Origin: " + origAirport.name});
     if (destAirport) airportPoints.push({ap: destAirport, color: "red", label: "Dest: " + destAirport.name});
 
-    const apRects = specialAirportsGroup.selectAll("rect.special-airport").data(airportPoints);
-    apRects.enter().append("rect").attr("class", "special-airport")
-      .merge(apRects)
-      .attr("width", 6).attr("height", 6).attr("fill", d => d.color).attr("opacity", 0.8);
-    apRects.exit().remove();
+    globeInstances.forEach(globe => {
+      const apRects = globe.specialAirportsGroup.selectAll("rect.special-airport").data(airportPoints);
+      apRects.enter().append("rect").attr("class", "special-airport")
+        .merge(apRects)
+        .attr("width", 6).attr("height", 6).attr("fill", d => d.color).attr("opacity", 0.8);
+      apRects.exit().remove();
 
-    const apLabels = specialAirportsGroup.selectAll("text.special-airport").data(airportPoints);
-    apLabels.enter().append("text").attr("class", "special-airport")
-      .merge(apLabels)
-      .attr("font-size", "12px")
-      .attr("fill", "black")
-      .text(d => d.label.slice(0,20));
-    apLabels.exit().remove();
+      const apLabels = globe.specialAirportsGroup.selectAll("text.special-airport").data(airportPoints);
+      apLabels.enter().append("text").attr("class", "special-airport")
+        .merge(apLabels)
+        .attr("font-size", "12px")
+        .attr("fill", "black")
+        .text(d => d.label.slice(0,20));
+      apLabels.exit().remove();
 
-    updateSpecialAirportPositions();
+      globe.updateSpecialAirportPositions();
+    });
   }
 
-  // Show airport info
-  function showAirportInfo(ap) {
+  function showAirportInfo(ap, datasetKey) {
     activeFlight = null;
     activePrefixHighlight = null;
+    activeCountryHighlight = null;
     activeAircraftHighlight = null;
     activeAirport = ap;
-    pathsGroup.selectAll("path.flightPath").remove();
-    specialAirportsGroup.selectAll("*").remove();
-    applyHighlightColors();
+    
+    globeInstances.forEach(globe => {
+      globe.pathsGroup.selectAll("path.flightPath").remove();
+      globe.specialAirportsGroup.selectAll("*").remove();
+      globe.applyHighlightColors();
+    });
 
-    const countryName = countryCodeToName[ap.iso_country] || ap.iso_country;
-    console.log("Airport country:", ap.iso_country, "Matched name:", countryName);
-    animateCountry(countryName);
+    const airportCountryName = Object.entries(countryCodeToName).find(([code, name]) => code === ap.iso_country)?.[1] || ap.iso_country;
+    animateCountry(airportCountryName);
+
+    // --- STATS CALCULATION ---
+    const minutes = Math.round(xScale.invert(handle.attr("cx")));
+    const timeSlot = Math.round(minutes / stepMinutes) * stepMinutes;
+    
+    const currentDataset = allDatasets[datasetKey];
+    const activeFlights = currentDataset.flights.filter(f => f.precalculated && f.precalculated[timeSlot]);
+
+    // Country Stats
+    const faaCountryName = Object.values(faaLookup).find(val => val.Country.toUpperCase().includes(airportCountryName.toUpperCase()))?.Country || "N/A";
+    const airlinesInCountry = Object.values(faaLookup).filter(val => val.Country === faaCountryName).length;
+    const activeFlightsInCountry = activeFlights.filter(f => getCountryForFlight(f) === faaCountryName).length;
+
+    // Airport Stats
+    const airportIdent = ap.ident.toUpperCase();
+    let originCount = 0;
+    let destCount = 0;
+    currentDataset.flights.forEach(f => {
+      if ((f.origin || "").toUpperCase() === airportIdent) originCount++;
+      if ((f.dest || "").toUpperCase() === airportIdent) destCount++;
+    });
+
+    // Radar Stats
+    const radarDistances = [50, 100, 250]; // in km
+    const radarCounts = radarDistances.map(d => 0);
+    const airportCoords = { lat: +ap.latitude_deg, lon: +ap.longitude_deg };
+
+    activeFlights.forEach(f => {
+      const pos = f.precalculated[timeSlot];
+      if (pos) {
+        const dist = haversineDistance(airportCoords, pos);
+        for (let i = 0; i < radarDistances.length; i++) {
+          if (dist <= radarDistances[i]) {
+            radarCounts[i]++;
+          }
+        }
+      }
+    });
+    
+    let countryStatsHtml = `
+      <h4>Country Stats (${faaCountryName})</h4>
+      <b>Airlines Registered:</b> ${airlinesInCountry}<br>
+      <b>Active Flights Now:</b> ${activeFlightsInCountry}<br>
+    `;
+
+    let airportStatsHtml = `
+      <h4>Airport Stats (All Day)</h4>
+      <b>Flights with this Origin:</b> ${originCount}<br>
+      <b>Flights with this Destination:</b> ${destCount}<br>
+    `;
+
+    let radarStatsHtml = `
+      <h4>Nearby Flights (Live Radar)</h4>
+      ${radarDistances.map((d, i) => `<b>&lt; ${d}km:</b> ${radarCounts[i]} flights<br>`).join("")}
+    `;
 
     let details = `
       <h4>Airport Info</h4>
@@ -635,98 +1534,36 @@
     `;
     if (ap.wikipedia_link) details += `<a href="${ap.wikipedia_link}" target="_blank">Wikipedia</a><br>`;
 
-    infoBox.html(`<strong>Airport Info</strong><br>${details}`);
+    infoBox.html(`
+      ${details}
+      ${countryStatsHtml}
+      ${airportStatsHtml}
+      ${radarStatsHtml}
+    `);
 
     const point = [{ap: ap, color: "purple", label: ap.name.slice(0,20)}];
-    const apRects = specialAirportsGroup.selectAll("rect.special-airport").data(point);
-    apRects.enter().append("rect").attr("class", "special-airport")
-      .merge(apRects)
-      .attr("width", 6).attr("height", 6).attr("fill", d => d.color).attr("opacity", 0.8);
+    globeInstances.forEach(globe => {
+      const apRects = globe.specialAirportsGroup.selectAll("rect.special-airport").data(point);
+      apRects.enter().append("rect").attr("class", "special-airport")
+        .merge(apRects)
+        .attr("width", 6).attr("height", 6).attr("fill", d => d.color).attr("opacity", 0.8);
 
-    const apLabels = specialAirportsGroup.selectAll("text.special-airport").data(point);
-    apLabels.enter().append("text").attr("class", "special-airport")
-      .merge(apLabels)
-      .attr("font-size", "12px")
-      .attr("fill", "black")
-      .text(d => d.label);
-    updateSpecialAirportPositions();
-  }
+      const apLabels = globe.specialAirportsGroup.selectAll("text.special-airport").data(point);
+      apLabels.enter().append("text").attr("class", "special-airport")
+        .merge(apLabels)
+        .attr("font-size", "12px")
+        .attr("fill", "black")
+        .text(d => d.label.slice(0,20));
+      apLabels.exit().remove();
 
-  // Apply highlight colors
-  function applyHighlightColors() {
-    pointsGroup.selectAll("circle.flight")
-      .attr("fill", d => {
-        if (activeAircraftHighlight && (d.registration||"").toUpperCase() === activeAircraftHighlight) return "purple";
-        if (activeFlight && d === activeFlight) return "green";
-        if (activeFlight && (d.callsign||"").slice(0,3).toUpperCase() === (activeFlight.callsign||"").slice(0,3).toUpperCase()) return "blue";
-        if (activePrefixHighlight && (d.callsign||"").toUpperCase().startsWith(activePrefixHighlight)) return "purple";
-        return "red";
-      })
-      .classed("pulsing", d => {
-        return (
-          (activeFlight && d === activeFlight) ||
-          (activeFlight && (d.callsign||"").slice(0,3).toUpperCase() === (activeFlight.callsign||"").slice(0,3).toUpperCase()) ||
-          (activePrefixHighlight && (d.callsign||"").toUpperCase().startsWith(activePrefixHighlight)) ||
-          (activeAircraftHighlight && (d.registration||"").toUpperCase() === activeAircraftHighlight)
-        );
-      });
-  }
-
-  function reprojectPaths() {
-    pathsGroup.selectAll("path.flightPath")
-      .attr("d", function(dPositions) {
-        if (!Array.isArray(dPositions) || dPositions.length < 2) return null;
-        const projected = dPositions
-          .map(p => {
-            const pr = projection([+p.longitude_1, +p.latitude_1]);
-            return pr ? [pr[0], pr[1]] : null;
-          })
-          .filter(p => p !== null);
-        if (projected.length < 2) return null;
-        return d3.line().curve(d3.curveNatural)(projected);
-      });
-  }
-
-  function updateAllAirportPositions() {
-    allAirportsGroup.selectAll("rect.airport")
-      .attr("x", d => {
-        const p = projection([+d.longitude_deg, +d.latitude_deg]);
-        return p ? p[0] - 2.5 : -100;
-      })
-      .attr("y", d => {
-        const p = projection([+d.longitude_deg, +d.latitude_deg]);
-        return p ? p[1] - 2.5 : -100;
-      });
-  }
-
-  function updateSpecialAirportPositions() {
-    specialAirportsGroup.selectAll("rect.special-airport")
-      .attr("x", d => {
-        const p = projection([+d.ap.longitude_deg, +d.ap.latitude_deg]);
-        return p ? p[0] - 3 : -100;
-      })
-      .attr("y", d => {
-        const p = projection([+d.ap.longitude_deg, +d.ap.latitude_deg]);
-        return p ? p[1] - 3 : -100;
-      });
-
-    specialAirportsGroup.selectAll("text.special-airport")
-      .attr("x", d => {
-        const p = projection([+d.ap.longitude_deg, +d.ap.latitude_deg]);
-        return p ? p[0] + 8 : -100;
-      })
-      .attr("y", d => {
-        const p = projection([+d.ap.longitude_deg, +d.ap.latitude_deg]);
-        return p ? p[1] + 4 : -100;
-      });
+      globe.updateSpecialAirportPositions();
+    });
   }
 
   // Timeline Slider
   const sliderWidth = 900;
   const sliderHeight = 50;
   const margin = {left:30, right:30};
-  const totalMinutes = 24*60;
-  const stepMinutes = 5;
   const xScale = d3.scaleLinear().domain([0, totalMinutes]).range([margin.left, sliderWidth - margin.right]);
   const svgSlider = d3.select("#sliderSvg");
 
@@ -744,18 +1581,17 @@
     .attr("r", 8)
     .attr("fill", "steelblue")
     .call(d3.drag()
+      .on("start", () => { if (playing) playPauseBtn.dispatch("click"); })
       .on("drag", (event) => {
         let x = event.x;
         x = Math.max(xScale(0), Math.min(xScale(totalMinutes), x));
-        handle.attr("cx", x);
-
         const minutes = Math.round(xScale.invert(x)/stepMinutes)*stepMinutes;
+        const newX = xScale(minutes);
+        handle.attr("cx", newX);
+
         const hours = Math.floor(minutes/60);
         const mins = minutes % 60;
-        const currentTime = new Date(startTime.getTime() + minutes*60000);
-        console.log("Slider time:", currentTime.toISOString());
-        updateFlights(currentTime);
-        infoBox.text("Click a plane or airport to see details");
+        updateAllGlobes(minutes);
         d3.select("#timeLabel").text(`Time: ${String(hours).padStart(2,"0")}:${String(mins).padStart(2,"0")} UTC`);
       })
     );
@@ -770,23 +1606,35 @@
     .selectAll("text")
     .style("font-size", "12px");
 
-  // Event handlers
-  dropdown.on("change", function(){
+  prefixDropdown.on("change", function(){
     activePrefixHighlight = this.value || null;
+    activeCountryHighlight = null;
     activeFlight = null;
-    activeAirport = null;
     activeAircraftHighlight = null;
-    pathsGroup.selectAll("path.flightPath").remove();
-    clearCountryAnimation();
-    applyHighlightColors();
-    infoBox.text(activePrefixHighlight ? `Highlighting flights with prefix: ${activePrefixHighlight}` : "Click a plane or airport to see details");
+    // console.log(`Prefix changed: activePrefixHighlight=${activePrefixHighlight}, activeCountryHighlight=${activeCountryHighlight}`);
+    
+    globeInstances.forEach(globe => globe.pathsGroup.selectAll("path.flightPath").remove());
+    
+    const minutes = Math.round(xScale.invert(handle.attr("cx")));
+    updateAllGlobes(minutes);
+    
+    infoBox.text(activePrefixHighlight ? `Showing flights for: ${activePrefixHighlight}` : "Showing top airlines/countries. Click a plane or airport for details.");
   });
 
-  const dateDropdown = d3.select("#dateDropdown");
-  // dateDropdown.on("change", function() {
-  //   loadFlightsData(this.value);
-  //   infoBox.text("Click a plane to see details");
-  // });
+  countryDropdown.on("change", function(){
+    activeCountryHighlight = this.value || null;
+    activePrefixHighlight = null;
+    activeFlight = null;
+    activeAircraftHighlight = null;
+    // console.log(`Country changed: activePrefixHighlight=${activePrefixHighlight}, activeCountryHighlight=${activeCountryHighlight}`);
+    
+    globeInstances.forEach(globe => globe.pathsGroup.selectAll("path.flightPath").remove());
+    
+    const minutes = Math.round(xScale.invert(handle.attr("cx")));
+    updateAllGlobes(minutes);
+    
+    infoBox.text(activeCountryHighlight ? `Showing flights for: ${activeCountryHighlight}` : "Showing top airlines/countries. Click a plane or airport for details.");
+  });
 
   autorotateBtn.on("click", ()=>{
     autorotate = !autorotate;
@@ -800,108 +1648,153 @@
       if (playTimer) clearInterval(playTimer);
       playTimer = setInterval(()=>{
         const cx = +handle.attr("cx");
-        let x = cx + (xScale(stepMinutes)-xScale(0));
-        if (x > xScale(totalMinutes)) x = xScale(0);
-        handle.attr("cx", x);
+        let currentMinutes = Math.round(xScale.invert(cx));
+        let nextMinutes = currentMinutes + stepMinutes;
+        if (nextMinutes > totalMinutes) nextMinutes = 0;
+        
+        const newX = xScale(nextMinutes);
+        handle.transition().duration(980).ease(d3.easeLinear).attr("cx", newX); // Adjust animation duration
 
-        const minutes = Math.round(xScale.invert(x)/stepMinutes)*stepMinutes;
-        const hours = Math.floor(minutes/60);
-        const mins = minutes % 60;
-        const currentTime = new Date(startTime.getTime() + minutes*60000);
-        updateFlights(currentTime);
-        infoBox.text("Click a plane or airport to see details");
+        const hours = Math.floor(nextMinutes/60);
+        const mins = nextMinutes % 60;
+        updateAllGlobes(nextMinutes);
         d3.select("#timeLabel").text(`Time: ${String(hours).padStart(2,"0")}:${String(mins).padStart(2,"0")} UTC`);
-      }, 500);
+      }, 1000); // Increased interval duration
     } else {
       clearInterval(playTimer);
+      handle.transition();
+      const minutes = Math.round(xScale.invert(handle.attr("cx")));
+      updateAllGlobes(minutes);
     }
   });
 
   d3.select("#xxx").append("text").attr("id","timeLabel").text("Time: 00:00 UTC");
 
-  // Initial render
-  //loadFlightsData(dateDropdown.property("value")); // Load default data
-  loadFlightsData("flights100k-jan1.csv"); // Load default data
-  updateAllAirportPositions();
-
   // Background click clears selection
-  svg.on("click", () => {
+  d3.select("body").on("click", () => { // Changed to body to catch clicks outside globes
     activeFlight = null;
     activeAirport = null;
-    activePrefixHighlight = null;
     activeAircraftHighlight = null;
-    pathsGroup.selectAll("path.flightPath").remove();
-    specialAirportsGroup.selectAll("*").remove();
-    clearCountryAnimation();
-    applyHighlightColors();
-    infoBox.text("Click a plane or airport to see details");
+    activePrefixHighlight = null;
+    activeCountryHighlight = null;
+    globeInstances.forEach(g => g.clearSelection());
+    infoBox.text("Showing top airlines/countries. Click a plane or airport for details.");
   });
 
-  // Drag rotation
-  svg.call(d3.drag().on("drag", event => {
-    const rotate = projection.rotate();
-    const k = sensitivity / projection.scale();
-    projection.rotate([rotate[0] + event.dx * k, rotate[1] - event.dy * k]);
-    path = d3.geoPath().projection(projection);
-    countryPaths.attr("d", path);
-    pointsGroup.selectAll("circle.flight")
-      .attr("cx", d => {
-        const p = projection([+d.longitude_1, +d.latitude_1]);
-        return p ? p[0] : -100;
-      })
-      .attr("cy", d => {
-        const p = projection([+d.longitude_1, +d.latitude_1]);
-        return p ? p[1] : -100;
-      });
-    reprojectPaths();
-    updateAllAirportPositions();
-    updateSpecialAirportPositions();
-  }));
+  // Multiview button logic
+  multiviewBtn.on("click", ()=>{
+    multiviewMode = !multiviewMode;
+    multiviewBtn.text(multiviewMode ? "Exit Multiview" : "Enter Multiview");
 
-  // Zoom
-  svg.call(d3.zoom()
-    .scaleExtent([0.5, 3])
-    .on("zoom", (event) => {
-      projection.scale(initialScale * event.transform.k);
-      path = d3.geoPath().projection(projection);
-      countryPaths.attr("d", path);
-      pointsGroup.selectAll("circle.flight")
-        .attr("cx", d => {
-          const p = projection([+d.longitude_1, +d.latitude_1]);
-          return p ? p[0] : -100;
-        })
-        .attr("cy", d => {
-          const p = projection([+d.longitude_1, +d.latitude_1]);
-          return p ? p[1] : -100;
-        });
-      svg.select("circle").attr("r", projection.scale());
-      reprojectPaths();
-      updateAllAirportPositions();
-      updateSpecialAirportPositions();
-    })
-  );
+    d3.select("#single-view-container").style("display", multiviewMode ? "none" : "block");
+    d3.select("#multi-view-container").style("display", multiviewMode ? "flex" : "none");
 
-  // Autorotation
-  d3.timer(() => {
-    if (!autorotate) return;
-    const rotate = projection.rotate();
-    projection.rotate([rotate[0] - 0.05, rotate[1]]);
-    path = d3.geoPath().projection(projection);
-    countryPaths.attr("d", path);
-    pointsGroup.selectAll("circle.flight")
-      .attr("cx", d => {
-        const p = projection([+d.longitude_1, +d.latitude_1]);
-        return p ? p[0] : -100;
-      })
-      .attr("cy", d => {
-        const p = projection([+d.longitude_1, +d.latitude_1]);
-        return p ? p[1] : -100;
-      });
-    reprojectPaths();
-    updateAllAirportPositions();
-    updateSpecialAirportPositions();
+    // Clear existing globes and re-create them based on multiviewMode
+    globeInstances.forEach(g => g.svg.remove()); // Remove all existing SVGs
+    globeInstances = []; // Clear the array
+
+    if (multiviewMode) {
+      globeInstances.push(createGlobe("#map1", 'jan'));
+      globeInstances.push(createGlobe("#map2", 'apr'));
+      globeInstances.push(createGlobe("#map3", 'dec'));
+    } else {
+      globeInstances.push(createGlobe("#map", currentDatasetKey));
+    }
+    
+    updateAllGlobesProjection();
+    updateAllGlobes(Math.round(xScale.invert(handle.attr("cx"))));
   });
 
+  // Zoom buttons
+  d3.select("#zoomInButton").on("click", () => {
+    const currentScale = projection.scale();
+    projection.scale(currentScale * 1.2); // Zoom in by 20%
+    updateAllGlobesProjection();
+  });
+
+  d3.select("#zoomOutButton").on("click", () => {
+    const currentScale = projection.scale();
+    projection.scale(currentScale / 1.2); // Zoom out by 20%
+    updateAllGlobesProjection();
+  });
+
+  // Directional rotation buttons
+  const rotationStep = 5; // degrees
+
+  d3.select("#rotateUpButton").on("click", () => {
+    const r = projection.rotate();
+    projection.rotate([r[0], r[1] + rotationStep, r[2]]);
+    updateAllGlobesProjection();
+  });
+
+  d3.select("#rotateDownButton").on("click", () => {
+    const r = projection.rotate();
+    projection.rotate([r[0], r[1] - rotationStep, r[2]]);
+    updateAllGlobesProjection();
+  });
+
+  d3.select("#rotateLeftButton").on("click", () => {
+    const r = projection.rotate();
+    projection.rotate([r[0] - rotationStep, r[1], r[2]]);
+    updateAllGlobesProjection();
+  });
+
+  d3.select("#rotateRightButton").on("click", () => {
+    const r = projection.rotate();
+    projection.rotate([r[0] + rotationStep, r[1], r[2]]);
+    updateAllGlobesProjection();
+  });
+
+  // Helper function for smooth globe rotation
+  function rotateGlobeTo(targetGeographicCoordinates) { // Renamed for clarity
+    const targetLon = targetGeographicCoordinates[0];
+    const targetLat = targetGeographicCoordinates[1];
+    const targetRoll = targetGeographicCoordinates[2] || 0; // Default to 0 if not provided
+
+    // Invert longitude and latitude to get the correct rotation for centering
+    const actualTargetRotation = [-targetLon, -targetLat, targetRoll];
+
+    d3.transition()
+      .duration(750) // milliseconds for the transition
+      .tween("rotate", function() {
+        const r = d3.interpolate(projection.rotate(), actualTargetRotation);
+        return function(t) {
+          projection.rotate(r(t));
+          updateAllGlobesProjection(); // Update all globes during transition
+        };
+      });
+  }
+
+  // Location jump buttons
+  d3.select("#jumpToAmerica").on("click", () => {
+    rotateGlobeTo([-98.5795, 39.8283, 0]); // More precise coordinates for continental US center
+  });
+  d3.select("#jumpToCanada").on("click", () => {
+    rotateGlobeTo([-94.0667, 61.0942, 0]); // More precise coordinates for Canada center
+  });
+  d3.select("#jumpToEurope").on("click", () => {
+    rotateGlobeTo([2.3522, 48.8566, 0]); // Paris coordinates
+  });
+  d3.select("#jumpToAfrica").on("click", () => {
+    rotateGlobeTo([21.7587, -2.0000, 0]); // More precise coordinates for Africa center
+  });
+  d3.select("#jumpToAsia").on("click", () => {
+    rotateGlobeTo([103.8272, 36.0594, 0]); // More precise coordinates for China center (Asia)
+  });
+  d3.select("#jumpToMiddleEast").on("click", () => {
+    rotateGlobeTo([45, 25, 0]); // Geographical center for Middle East
+  });
+  d3.select("#jumpToSouthAmerica").on("click", () => {
+    rotateGlobeTo([-56.0979, -15.5959, 0]); // More precise coordinates for Brazil center (South America)
+  });
+  d3.select("#jumpToAustralia").on("click", () => {
+    rotateGlobeTo([133.8807, -23.6980, 0]); // More precise coordinates for Australia center
+  });
+
+  // Initial Load
+  await loadAllDatasets();
+  globeInstances.push(createGlobe("#map", currentDatasetKey));
+  updateAllGlobes(0);
 })();
 </script>
 </html>
