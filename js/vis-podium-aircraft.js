@@ -251,6 +251,15 @@ function drawGroupedBarChart(svg, data, dateInfo, width, height, allFlights) {
     .attr("stroke", "#cbd5e1")
     .attr("stroke-width", 1);
 
+  // X-axis label
+  g.append("text")
+    .attr("fill", "#0f172a")
+    .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 20})`)
+    .attr("text-anchor", "middle")
+    .attr("font-size", "12")
+    .attr("font-weight", "600")
+    .text("Aircraft Model");
+
   const yAxis = g.append("g")
     .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("d")));
   
@@ -366,6 +375,20 @@ function drawGroupedBarChart(svg, data, dateInfo, width, height, allFlights) {
       });
   });
 
+  // Add aircraft model names under each bar group
+  g.selectAll("text.model-name")
+    .data(data)
+    .enter()
+    .append("text")
+    .attr("class", "model-name")
+    .attr("x", d => x0(d.model) + x0.bandwidth() / 2)
+    .attr("y", chartHeight + 20)
+    .attr("text-anchor", "middle")
+    .attr("font-size", "9")
+    .attr("font-weight", "500")
+    .attr("fill", "#475569")
+    .text(d => d.model);
+
   function updateHighlighting() {
     periods.forEach(period => {
       g.selectAll(`rect.${period}`)
@@ -441,12 +464,13 @@ function drawGroupedBarChart(svg, data, dateInfo, width, height, allFlights) {
 
   // Interactive legend - positioned below stats panel
   const legend = svg.append("g")
-    .attr("transform", `translate(${panelX}, ${margin.top + panelHeight + 15})`);
+    .attr("transform", `translate(${panelX}, ${margin.top + panelHeight + 25})`);
 
-  const legendFontSize = Math.min(10, panelWidth / 15);
+  const legendFontSize = Math.min(11, panelWidth / 14);
+  const clickToFilterY = 0;
   legend.append("text")
     .attr("x", panelWidth / 2)
-    .attr("y", 0)
+    .attr("y", clickToFilterY)
     .attr("text-anchor", "middle")
     .attr("font-size", legendFontSize)
     .attr("font-weight", "600")
@@ -460,13 +484,42 @@ function drawGroupedBarChart(svg, data, dateInfo, width, height, allFlights) {
     color: dateInfo[period].color
   }));
 
-  const legendItemSize = Math.min(14, panelWidth / 11);
-  const legendTextSize = Math.min(9, panelWidth / 16);
-  const legendSubtextSize = Math.min(7, panelWidth / 20);
+  const legendItemSize = Math.min(16, panelWidth / 10);
+  const legendTextSize = Math.min(10, panelWidth / 15);
+  const legendSubtextSize = Math.min(8, panelWidth / 18);
+  const legendItemSpacing = 32;
+  const spacingAfterClickToFilter = 22;
   
   legendItems.forEach((item, i) => {
+    const legendY = clickToFilterY + spacingAfterClickToFilter + i * legendItemSpacing; // Better spacing
+    
+    // Add invisible clickable area for better UX
+    const clickArea = legend.append("rect")
+      .attr("x", 0)
+      .attr("y", legendY - 8)
+      .attr("width", panelWidth)
+      .attr("height", legendItemSpacing - 4)
+      .attr("fill", "transparent")
+      .attr("opacity", 0)
+      .style("cursor", "pointer")
+      .on("click", function() {
+        if (highlightedPeriod === item.period) {
+          highlightedPeriod = null;
+        } else {
+          highlightedPeriod = item.period;
+        }
+        updateHighlighting();
+        updateLegend();
+      })
+      .on("mouseover", function() {
+        d3.select(this).attr("fill", "rgba(0,0,0,0.03)");
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("fill", "transparent");
+      });
+    
     const legendItem = legend.append("g")
-      .attr("transform", `translate(0, ${i * 26 + 12})`)
+      .attr("transform", `translate(0, ${legendY})`)
       .style("cursor", "pointer")
       .on("click", function() {
         if (highlightedPeriod === item.period) {
@@ -482,21 +535,23 @@ function drawGroupedBarChart(svg, data, dateInfo, width, height, allFlights) {
       .attr("width", legendItemSize)
       .attr("height", legendItemSize)
       .attr("fill", item.color)
-      .attr("rx", 2)
+      .attr("rx", 3)
       .attr("opacity", () => highlightedPeriod === null || highlightedPeriod === item.period ? 1 : 0.3)
-      .style("filter", "drop-shadow(0 1px 2px rgba(0,0,0,0.1))");
+      .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.15))")
+      .attr("stroke", () => highlightedPeriod === item.period ? "#0f172a" : "none")
+      .attr("stroke-width", () => highlightedPeriod === item.period ? 2 : 0);
 
     legendItem.append("text")
-      .attr("x", legendItemSize + 6)
+      .attr("x", legendItemSize + 8)
       .attr("y", legendItemSize * 0.5 + 1)
       .attr("font-size", legendTextSize)
       .attr("fill", "#0f172a")
-      .attr("font-weight", "500")
+      .attr("font-weight", () => highlightedPeriod === item.period ? "600" : "500")
       .text(item.label);
 
     legendItem.append("text")
-      .attr("x", legendItemSize + 6)
-      .attr("y", legendItemSize + 8)
+      .attr("x", legendItemSize + 8)
+      .attr("y", legendItemSize + 9)
       .attr("font-size", legendSubtextSize)
       .attr("fill", "#64748b")
       .text(item.subtitle);
@@ -508,23 +563,45 @@ function drawGroupedBarChart(svg, data, dateInfo, width, height, allFlights) {
         .duration(150)
         .ease(d3.easeQuadOut)
         .attr("opacity", 1)
-        .attr("transform", "scale(1.1)");
+        .attr("transform", "scale(1.15)")
+        .style("filter", "drop-shadow(0 3px 6px rgba(0,0,0,0.2))");
     }).on("mouseout", function() {
       updateLegend();
     });
   });
 
   function updateLegend() {
+    const spacingAfterClickToFilter = 22;
     legendItems.forEach((item, i) => {
-      const legendRect = legend.selectAll(`rect`).nodes()[i];
-      if (legendRect) {
-        d3.select(legendRect)
-          .transition()
-          .duration(200)
-          .ease(d3.easeQuadOut)
-          .attr("opacity", () => highlightedPeriod === null || highlightedPeriod === item.period ? 1 : 0.3)
-          .attr("transform", "scale(1)");
-      }
+      const legendY = spacingAfterClickToFilter + i * legendItemSpacing;
+      
+      legend.selectAll("g").each(function() {
+        const transform = d3.select(this).attr("transform");
+        if (transform && transform.includes(`translate(0, ${legendY})`)) {
+          const rect = d3.select(this).select("rect");
+          const isActive = highlightedPeriod === null || highlightedPeriod === item.period;
+          
+          rect.transition()
+            .duration(200)
+            .ease(d3.easeQuadOut)
+            .attr("opacity", isActive ? 1 : 0.3)
+            .attr("transform", "scale(1)")
+            .attr("stroke", highlightedPeriod === item.period ? "#0f172a" : "none")
+            .attr("stroke-width", highlightedPeriod === item.period ? 2 : 0)
+            .style("filter", isActive ? "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" : "drop-shadow(0 1px 2px rgba(0,0,0,0.1))");
+          
+          // Update text weight
+          d3.select(this).selectAll("text").each(function() {
+            const textContent = d3.select(this).text();
+            if (textContent === item.label) {
+              d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("font-weight", highlightedPeriod === item.period ? "600" : "500");
+            }
+          });
+        }
+      });
     });
   }
 }
