@@ -5,11 +5,12 @@ const App = {
   sections: [],
   index: 0,
   registry: {
-    "vis-globe-links": renderGlobeLinks,
+    //"vis-globe-links": renderGlobeLinks,
     "vis-calendar": renderCalendar,
-    "vis-timeline-map": renderTimelineMap,
+    "vis-timeline-map": renderFuelGauge,
     "vis-podium-aircraft": renderPodium,
-    "vis-plane-view": renderPlaneView
+    "vis-plane-view": renderPlaneView,
+    // "vis-fuel-gauge": renderFuelGauge
   }
 };
 

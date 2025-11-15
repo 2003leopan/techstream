@@ -1,3 +1,4 @@
+
 function renderFuelGauge(selector, mainData) {
   const container = d3.select(selector);
   container.selectAll("*").remove();

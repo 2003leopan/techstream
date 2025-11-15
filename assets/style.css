@@ -114,6 +114,25 @@ body { margin:0; overflow:hidden; font-family: system-ui, Segoe UI, Inter, Arial
 }
 
 
+/* Example: Global Connections panel (v1) */
+#v2 header.side {
+  display: none;
+}
+
+#v2 .two-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#v2 .vis-canvas {
+  width: 90vw;   /* make it wider */
+  height: 82vh;  /* make it taller */
+  margin: 0 auto;
+}
+
+
+
 /* Hide the left text column for the Calendar */
 #v5 header.side {
   display: none;
